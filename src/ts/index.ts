@@ -6,7 +6,7 @@ const game = new Game(document.getElementById("canvas") as HTMLCanvasElement);
 
 const player = new Entity(game, "player1", "000001", 200, 200, {
   ticking: {
-    function: () => {
+    function: () => { // add moving sprites (u have them saved somwehr robert.png)
       if (moving["w"]) {
         player.moveTo(player.cX, player.cY - 2);
         player.color = "000003";
