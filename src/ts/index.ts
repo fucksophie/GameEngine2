@@ -1,55 +1,65 @@
 import { Entity, Game, Tilemap } from "./classes";
 
-const game = new Game(document.getElementById("hueuheuhe") as HTMLCanvasElement, 32);
+let moving: Record<string, boolean> = {};
 
-const player = new Entity(game, "player1", "ffffff", 10, 10);
+const game = new Game(document.getElementById("canvas") as HTMLCanvasElement);
+
+const player = new Entity(game, "player1", "000001", 200, 200, {
+    ticking: {
+        function: () => {
+            if(moving["w"]) {
+                player.moveTo(player.cX, player.cY - 2);
+                player.color = "000003";
+                return;
+
+            }
+            if(moving["s"]) {
+                player.moveTo(player.cX, player.cY + 2);
+                player.color = "000001"
+                return;
+            }
+
+            if(moving["a"]) {
+                player.moveTo(player.cX - 2, player.cY);
+                player.color = "000002"
+                return;
+            }
+
+            if(moving["d"]) {
+                player.moveTo(player.cX + 1, player.cY);
+                player.color = "000004"
+                return;
+            }
+        },
+        speed: 10
+    }
+});
 
 game.tileMap = new Tilemap("dark_forest.png", {
     width: 32,
     height: 32
 });
 
-new Entity(game, "enemy1", "000000", 15, 15, {
-	ticking: {
-		speed: 100,
-		function: function (me: Entity) {
-			let direction = {x: player.x-me.x > 0, y: player.y-me.y > 0}
-			
-			if(direction.x && direction.y) {
-				me.moveTo(me.x + Math.floor(Math.random() * 2), me.y + Math.floor(Math.random() * 2));
-			}
-			if(!direction.x && direction.y) {
-				me.moveTo(me.x - Math.floor(Math.random() * 2), me.y + Math.floor(Math.random() * 2));
-			}
-			if(direction.x && !direction.y) {
-				me.moveTo(me.x + Math.floor(Math.random() * 2), me.y - Math.floor(Math.random() * 2));
-			}
-			if(!direction.x && !direction.y) {
-				me.moveTo(me.x - Math.floor(Math.random() * 2), me.y - Math.floor(Math.random() * 2));
-			}
+player.tileMap = new Tilemap("playersprite.png", {
+    width: 32,
+    height: 32
+});
 
-		}
-	}
-})
 
-player.addMoveHandler((key) => {
-    switch (key) {
-        case 'a':
-        case 'ArrowLeft':
-        player.moveTo(player.x - 1, player.y);
-        break;
-        case 'd':
-        case 'ArrowRight':
-        player.moveTo(player.x + 1, player.y);
-        break;
-        case 'w':
-        case 'ArrowUp':
-        player.moveTo(player.x, player.y - 1);
-        break;
-        case 's':
-        case 'ArrowDown':
-
-        player.moveTo(player.x, player.y + 1);
+window.addEventListener("keydown", e => {    
+    switch (e.key) {
+        case 'ContextMenu':
+            if(e.preventDefault) e.preventDefault();
+            if(localStorage.getItem("isDebug?")) {
+                localStorage.removeItem("isDebug?")
+            } else {
+                localStorage.setItem("isDebug?", "true");
+            }
+            window.location.reload();
         break;
     }
 })
+
+player.addMoveHandler((key, x) => {
+    moving[key] = x;
+});

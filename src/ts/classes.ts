@@ -1,21 +1,35 @@
-/*
-need to start making asset support..
-https://adamatomic.itch.io/jawbreaker
-https://datagoblin.itch.io/monogram
-https://ppeldo.itch.io/2d-pixel-art-game-spellmagic-fx
-https://vnitti.itch.io/taiga-asset-pack
-*/
 interface Tileinfo {
 	width: number
 	height: number
 }
-export class Tilemap { // all tileinfo and tilemap shit is new and probably doesn't work 
+
+interface EntitySettings {
+	ticking: {
+		function: Function;
+		speed: number;
+	}
+}
+
+interface GameSettings {
+	ground: {
+		main: string,
+		second: string
+	},
+	flowers: {
+		flowers: string[],
+		mushrooms: string[],
+		unique: string[]
+	},
+	pixelSize: number
+}
+
+export class Tilemap {
 	tileSettings: Tileinfo = {width: 8, height: 8};
 	file: string;
 
-	colorMap: Record<string, ImageData> = [] as unknown as Record<string, ImageData>; // idk how to fix thtis lmfao
+	colorMap: Record<string, HTMLImageElement> = {};
 	
-	colorToTile(color: string): ImageData|undefined {
+	colorToTile(color: string): HTMLImageElement|undefined {
 		if(this.colorMap?.[color]) return this.colorMap[color];
 		return;
 	}
@@ -33,116 +47,189 @@ export class Tilemap { // all tileinfo and tilemap shit is new and probably does
 			canvas.height = img.height;
 			const rows = canvas.width / this.tileSettings.width;
 			const cols = canvas.height / this.tileSettings.height;
-			
+			let num = 0;
+
 			ctx.drawImage(img, 0, 0);
-			let x = 0;
-			for(let r = 0; r < rows; r++) {
-				for(let c = 0; c < cols; c++) {
-					x++;
-					this.colorMap[x.toString().padStart(6, "0")] = ctx.getImageData(c * this.tileSettings.width, r * this.tileSettings.height, this.tileSettings.height, this.tileSettings.width);
-	
+			
+			for(let c = 0; c < cols; c++) {
+				for(let r = 0; r < rows; r++) {
+					num++;
+
+					let imageDataCANVAS = document.createElement('canvas');
+					let imageDataCTX = imageDataCANVAS.getContext('2d')!;
+					imageDataCANVAS.width = this.tileSettings.width;
+					imageDataCANVAS.height = this.tileSettings.height;
+					imageDataCTX.putImageData(ctx.getImageData(r * this.tileSettings.width, 
+						c * this.tileSettings.height, 
+						this.tileSettings.width, 
+						this.tileSettings.height), 0, 0);
+
+					let imageDataImg = new Image();
+					imageDataImg.src = imageDataCANVAS.toDataURL();
+					
+					this.colorMap[num.toString().padStart(6, "0")] = imageDataImg;
 				}	
 			}
 		}, false);
 
 		img.src = this.file; 
 	}
-
 }
+
 export class Game {
 	canvas: HTMLCanvasElement;
 	ctx: CanvasRenderingContext2D;
-	mapLayer: Map<string, string> = new Map<string, string>();
+	mapLayer: Map<string, string[]> = new Map<string, string[]>();
 	entities: Map<string, Entity> = new Map<string, Entity>();
-	
-	tileMap: Tilemap | undefined; // NEW
+	tileMap: Tilemap | undefined;
+	settings: GameSettings
+	debug = localStorage.getItem("isDebug?") || false;
 
-	pixelSize: number;
-	
 	colorAlgo(x: number, y: number) {
-		return (((x+y)%2==0) ? ((Math.floor(Math.random() * 20) < 10) ? "006400" : "008000") : "008000");
+		let colors: string[] = [((x+y)%2==0) ? ((Math.floor(Math.random() * 20) < 10) ? this.settings.ground.second :  this.settings.ground.main) : this.settings.ground.main];
+		
+		this.settings.flowers.flowers.forEach(x => {
+			if(Math.random() >= 0.95) {
+				colors.push(x)
+			}
+		})
+		
+		if(colors.length >= 2) return colors; // kinda ugly
+		this.settings.flowers.mushrooms.forEach(x => {
+			if(Math.random() >= 0.96) {
+				colors.push(x)
+			}
+		})
+
+		if(colors.length >= 2) return colors;
+		this.settings.flowers.unique.forEach(x => {
+			if(Math.random() >= 0.99) {
+				colors.push(x)
+			}
+		})
+
+		return colors;
 	}
 
 	coordinatesToPixel(x: number): number {
-		return this.pixelSize * Math.floor(x);
+		return this.settings.pixelSize * Math.floor(x);
 	} 
 	
-	constructor(canvas: HTMLCanvasElement, pixelSize = 30) {
+	constructor(canvas: HTMLCanvasElement, settings: GameSettings = {
+		ground: {
+			main: "000146",
+			second: "000145"
+		},
+		flowers: {
+			flowers: ["000062", "000061", "000060"],
+			mushrooms: ["000032"],
+			unique: ["000038"]
+		},
+		pixelSize: 30
+	}) {
 		this.canvas = canvas;
 		this.ctx = this.canvas.getContext("2d")!;
-		
 		this.canvas.width = innerWidth;
 		this.canvas.height = innerHeight;
-		this.pixelSize = pixelSize;
+		this.settings = settings;
 
 		window.requestAnimationFrame(() => {this.draw()});
-		
-		window.addEventListener('keydown', e => this.entities.forEach(x => x.moveHandlers.forEach(y => y(e.key))))
 
-		for(let x = 0; x < canvas.width; x+=this.pixelSize) {
-			for(let y = 0; y < canvas.height; y+=this.pixelSize) {				
+		document.body.addEventListener("keydown", (e) => {
+			if(e.repeat) return;
+			this.entities.forEach(x => x.moveHandlers.forEach(y => y(e.key, true)))
+		});
+
+		document.body.addEventListener("keyup", (e) => {
+			this.entities.forEach(x => x.moveHandlers.forEach(y => y(e.key, false)))
+		});
+
+
+		for(let x = 0; x < canvas.width; x+=this.settings.pixelSize) {
+			for(let y = 0; y < canvas.height; y+=this.settings.pixelSize) {				
 				this.mapLayer.set(x+","+y, this.colorAlgo(x, y));
 			}
 		}
 
 	}
-	
+
 	draw() {
 		this.canvas.width = innerWidth;
 		this.canvas.height = innerHeight;
+		let total = 0;
 		
-		for(let x = 0; x < this.canvas.width; x+=this.pixelSize) {
-			for(let y = 0; y < this.canvas.height; y+=this.pixelSize) {
-				let color = this.mapLayer.get(x+","+y);
-				let entity = [...this.entities.values()].find(b => b.canvasX == x && b.canvasY == y);
-				
-				if(entity) color = entity.color;
-				if(color) {
-					// ALL NEW 
-					if(this.tileMap) {
-						let tile = this.tileMap.colorToTile(color);
-						if(tile) {
-							this.ctx.putImageData(tile, x, y);
-							continue;
-						}
-					}
-					// ALL NEW 
-					this.ctx.fillStyle = "#" + color;
-					this.ctx.fillRect(x, y, this.pixelSize, this.pixelSize);
-				} else {
-					this.mapLayer.set(x+","+y, this.colorAlgo(x, y));
+
+		for(let x = 0; x < this.canvas.width; x+=this.settings.pixelSize) {
+			for(let y = 0; y < this.canvas.height; y+=this.settings.pixelSize) {
+				total++;
+				if(!this.tileMap) {
+					this.ctx.fillStyle = "#" + this.mapLayer.get(x+","+y);
+					this.ctx.fillRect(x, y, this.settings.pixelSize, this.settings.pixelSize);
+					continue;
 				}
+
+				let colors: [Tilemap, string[]][] = [];
+
+				if(!this.mapLayer.get(x+","+y)) {
+					this.mapLayer.set(x+","+y, this.colorAlgo(x, y));
+					continue;
+				}
+				
+				colors.push([this.tileMap, this.mapLayer.get(x+","+y)!]);
+
+				colors.forEach((element)=> {
+					element[1].forEach(currcolor => {
+						let tile = element[0].colorToTile(currcolor);
+						
+						if(this.debug) {
+							tile = element[0].colorToTile(total.toString().padStart(6, "0"))
+						}
+
+						if(tile) {
+							this.ctx.drawImage(tile, x, y);
+							
+							if(this.debug) {
+								this.ctx.fillStyle = "#ffffff"
+								this.ctx.font = "15px Arial"
+
+								this.ctx.fillText(total.toString(), x+2, y+15);
+							}
+						}
+
+					})
+				})
 			}
 		}
 
-		window.requestAnimationFrame(() => {this.draw()});
+		this.entities.forEach((e, i) => {
+			if(e.tileMap) {
+				const xd = e.tileMap.colorToTile(e.color) ;
+				if(xd) {
+					this.ctx.drawImage(xd, e.cX, e.cY);
+				}
+			} else {
+				this.ctx.fillStyle = "#" + e.color;
+				this.ctx.fillRect(e.cX, e.cY, this.settings.pixelSize, this.settings.pixelSize);
+				return;
+			}
+		})
+
+		window.requestAnimationFrame(() => {this.draw()})
 	}
 }
-
 export class Entity {
 	private game: Game;
-    private readonly settings: {
-        ticking: {
-            function: Function;
-            speed: number;
-        }
-    } | undefined;
+    private readonly settings: EntitySettings | undefined;
 	color: string;
-    x: number;
-    y: number;
-    lastX: number;
-    lastY: number;
-    canvasX: number;
-    canvasY: number;
+    cX: number;
+    cY: number;
 	name: string;
+	tileMap: Tilemap | undefined;
 	moveHandlers: Function[] = [];
 
-	constructor(game: Game, name: string, color: string, x: number, y: number, settings:  {
-        ticking: {
-            function: Function;
-            speed: number;
-        }
-    } | undefined = undefined) {
+	constructor(game: Game, name: string, color: string, x: number, y: number, settings: EntitySettings|undefined = undefined) {
+		if(game.debug) return; // no entities in debug mode
+		
 		console.log("✨ new entity created:", name, this)
 		this.game = game;
 		this.color = color;
@@ -165,23 +252,16 @@ export class Entity {
 	}
 
 	moveTo(x: number, y: number) {
-		let canvasX = this.game.pixelSize*Math.floor(x);
-		let canvasY = this.game.pixelSize*Math.floor(y);
-		
 		if([...this.game.entities.values()].find(b => 
-			b.canvasX == canvasX && 
-			b.canvasY == canvasY)
+			b.cX == x && 
+			b.cY == y)
 		) return;
 
-		if((canvasX > this.game.canvas.width || canvasX < 0) ||
-			(canvasY > this.game.canvas.height || canvasY < 0)) return;
-		
-		this.x = x;
-		this.y = y;
-		
-		this.lastX = x;
-		this.lastY = y;
-		this.canvasX = canvasX;
-		this.canvasY = canvasY;
+		if((x > this.game.canvas.width || x < 0) ||
+			(y > this.game.canvas.height || y < 0)) {
+				return;
+			};
+		this.cX = x;
+		this.cY = y;
 	}
 }
