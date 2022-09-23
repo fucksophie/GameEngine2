@@ -6,28 +6,30 @@ let moving: Record<string, boolean> = {};
 
 const game = new Game(document.getElementById("canvas") as HTMLCanvasElement);
 
+let speed = 20;
+
 const player = new Entity(game, "player1", "000001", 200, 200, {
   ticking: {
     function: () => { // add moving sprites (u have them saved somwehr robert.png)
       if (moving["w"]) {
-        player.moveTo(player.cX, player.cY - 2);
+        player.moveTo(player.cX, player.cY - speed);
         player.color = "000003";
         return;
       }
       if (moving["s"]) {
-        player.moveTo(player.cX, player.cY + 2);
+        player.moveTo(player.cX, player.cY + speed);
         player.color = "000001";
         return;
       }
 
       if (moving["a"]) {
-        player.moveTo(player.cX - 2, player.cY);
+        player.moveTo(player.cX - speed, player.cY);
         player.color = "000002";
         return;
       }
 
       if (moving["d"]) {
-        player.moveTo(player.cX + 1, player.cY);
+        player.moveTo(player.cX + speed, player.cY);
         player.color = "000004";
         return;
       }
@@ -48,4 +50,6 @@ player.tileMap = new Tilemap("playersprite.png", {
 
 player.addMoveHandler((key, x) => {
   moving[key] = x;
+    console.log(moving);
+
 });

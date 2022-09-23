@@ -49,14 +49,20 @@ export class Entity {
       this.moveHandlers.push(func);
     }
   
+    isColliding(): Entity|undefined {
+      return [...this.game.entities.values()].find((b) => {
+        if(b == this) return;
+        return (
+          b.cX < this.cX + this.game.settings.pixelSize+3 &&
+          b.cX + this.game.settings.pixelSize+3 > this.cX &&
+          b.cY < this.cY + this.game.settings.pixelSize+3 &&
+          this.game.settings.pixelSize+3 + b.cY > this.cY
+        );
+      }
+      );
+    }
+
     moveTo(x: number, y: number) {
-      if (
-        [...this.game.entities.values()].find((b) =>
-          b.cX == x &&
-          b.cY == y
-        )
-      ) return;
-  
       if (
         (x > this.game.canvas.width || x < 0) ||
         (y > this.game.canvas.height || y < 0)
