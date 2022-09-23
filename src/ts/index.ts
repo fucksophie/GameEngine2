@@ -1,4 +1,6 @@
-import { Entity, Game, Tilemap } from "./classes";
+import { Entity } from "./Entity";
+import { Game } from "./Game";
+import { Tilemap } from "./Tilemap";
 
 let moving: Record<string, boolean> = {};
 
@@ -42,20 +44,6 @@ game.tileMap = new Tilemap("dark_forest.png", {
 player.tileMap = new Tilemap("playersprite.png", {
   width: 32,
   height: 32,
-});
-
-window.addEventListener("keydown", (e) => {
-  switch (e.key) {
-    case "ContextMenu":
-      if (e.preventDefault) e.preventDefault();
-      if (localStorage.getItem("isDebug?")) {
-        localStorage.removeItem("isDebug?");
-      } else {
-        localStorage.setItem("isDebug?", "true");
-      }
-      window.location.reload();
-      break;
-  }
 });
 
 player.addMoveHandler((key, x) => {
