@@ -24,7 +24,7 @@ export class Game {
   debug = localStorage.getItem("isDebug?") || false;
 
   colorAlgo(x: number, y: number) {
-    let colors: string[] = [
+    let types: string[] = [
       ((x + y) % 2 == 0)
         ? ((Math.floor(Math.random() * 20) < 10)
           ? this.settings.ground.second
@@ -34,25 +34,25 @@ export class Game {
 
     this.settings.flowers.flowers.forEach((x) => {
       if (Math.random() >= 0.95) {
-        colors.push(x);
+        types.push(x);
       }
     });
 
-    if (colors.length >= 2) return colors; // kinda ugly
+    if (types.length >= 2) return types; // kinda ugly
     this.settings.flowers.mushrooms.forEach((x) => {
       if (Math.random() >= 0.96) {
-        colors.push(x);
+        types.push(x);
       }
     });
 
-    if (colors.length >= 2) return colors;
+    if (types.length >= 2) return types;
     this.settings.flowers.unique.forEach((x) => {
       if (Math.random() >= 0.99) {
-        colors.push(x);
+        types.push(x);
       }
     });
 
-    return colors;
+    return types;
   }
 
   coordinatesToPixel(x: number): number {
@@ -134,16 +134,16 @@ export class Game {
           continue;
         }
 
-        let colors: [Tilemap, string[]][] = [];
+        let types: [Tilemap, string[]][] = [];
 
         if (!this.mapLayer.get(x + "," + y)) {
           this.mapLayer.set(x + "," + y, this.colorAlgo(x, y));
           continue;
         }
 
-        colors.push([this.tileMap, this.mapLayer.get(x + "," + y)!]);
+        types.push([this.tileMap, this.mapLayer.get(x + "," + y)!]);
 
-        colors.forEach((element) => {
+        types.forEach((element) => {
           element[1].forEach((currcolor) => {
             let tile = element[0].colorToTile(currcolor);
 

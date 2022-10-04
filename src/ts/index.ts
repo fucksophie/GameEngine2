@@ -6,7 +6,7 @@ let moving: Record<string, boolean> = {};
 
 const game = new Game(document.getElementById("canvas") as HTMLCanvasElement);
 
-let speed = 20;
+let speed = 2;
 
 const player = new Entity(game, "player1", "000001", 200, 200, {
   ticking: {
